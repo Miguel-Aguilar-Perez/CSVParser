@@ -12,9 +12,9 @@ public class Program
         ParameterValidator.ValidateEntryParameters(filePath, parserType);
 
         var parser = ParserFactory.CreateParser(parserType);
-
         var result = parser.Parse(filePath);
 
+        //TODO: Handle the result somehow: store it in a database, write to a file, etc. For now, print to console.
         Console.WriteLine("Parsed DTOs:");
         foreach (var parsedObject in result.ParsedObjects)
         {

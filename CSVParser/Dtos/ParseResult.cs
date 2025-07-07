@@ -8,7 +8,7 @@ public class ParseResult
     /// <summary>
     /// Gets or sets the list of parsed DTOs.
     /// </summary>
-    public List<FileInfoDto> ParsedObjects { get; set; } = new();
+    public List<DataRowDto> ParsedObjects { get; set; } = new();
 
     /// <summary>
     /// Gets or sets the list of error messages encountered during parsing.

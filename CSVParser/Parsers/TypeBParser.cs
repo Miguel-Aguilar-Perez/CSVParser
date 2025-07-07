@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 namespace CSVParser.Parsers;
 
 /// <summary>
@@ -5,6 +7,15 @@ namespace CSVParser.Parsers;
 /// </summary>
 public class TypeBParser : ICsvParser
 {
+    private static readonly string[] ColumnsToExtract =
+    [
+        "Name",
+        "Surname",
+        "Salary",
+        "ID",
+        "Salary"
+    ];
+
     /// <summary>
     /// Parses a TypeB CSV file and maps its data to the common DTO.
     /// Performs validation, transformation, and external data loading specific to TypeB format.
@@ -16,45 +27,83 @@ public class TypeBParser : ICsvParser
     public ParseResult Parse(string csvFilePath)
     {
         var result = new ParseResult();
+        var rows = CsvUtils.ReadRows(csvFilePath);
 
-        foreach (var row in CsvUtils.ReadRows(csvFilePath))
+        foreach (var row in rows)
         {
-            var dto = new FileInfoDto();
+            var parsedObject = ExtractData(row);
 
-            // Email selection logic
-            var corporateEmail = row.GetValueOrDefault("CorporateEmail") ?? "";
-            var personalEmail = row.GetValueOrDefault("PersonalEmail") ?? "";
-            var selectedEmail = TransformationUtils.SelectPreferredEmail(corporateEmail, personalEmail);
-            
-            if (!ExtractionValidationUtils.IsValidEmail(selectedEmail))
-            {
-                result.Errors.Add($"Row {row.RowNumber}: Invalid Email '{selectedEmail}'");
-            }
-
-            dto.Data["Email"] = selectedEmail;
-
-            // Other fields that might be present in TypeB CSV. More fields can be added as needed and errors could be added to the result.Errors list if needed.
-            var hasFirstName = row.Data.TryGetValue("Name", out var firstName);
-            var hasLastName = row.Data.TryGetValue("Surname", out var lastName);
-            var hasCustomerId = row.Data.TryGetValue("ID", out var customerId);
-            var hasSalary = row.Data.TryGetValue("Salary", out var salary);
-
-            if (hasFirstName && !string.IsNullOrWhiteSpace(firstName)) dto.Data["FirstName"] = firstName;
-            if (hasLastName && !string.IsNullOrWhiteSpace(lastName)) dto.Data["LastName"] = lastName;
-            if (hasSalary && !string.IsNullOrWhiteSpace(salary)) dto.Data["CustomerID"] = salary;
-
-            if (hasCustomerId && !string.IsNullOrWhiteSpace(customerId))
-            {
-                dto.Data["CustomerID"] = customerId;
-
-                // Phone might need to be loaded from an external source
-                var phone = ExternalDataUtils.GetPhoneById(customerId);
-                dto.Data["Phone"] = phone;
-            }
-
-            result.ParsedObjects.Add(dto);
+            ProcessEmail(parsedObject, result.Errors, row.RowNumber);
+            result.ParsedObjects.Add(parsedObject);
         }
 
         return result;
+    }
+
+    private static DataRowDto ExtractData(CsvUtils.CsvRow row)
+    {
+        var dto = new DataRowDto();
+
+        foreach (var column in ColumnsToExtract)
+        {
+            switch (column)
+            {
+                case "Name":
+                    ParserFieldHelper.ExtractGenericField(row, dto, column, "FirstName");
+                    break;
+
+                case "Surname":
+                    ParserFieldHelper.ExtractGenericField(row, dto, column, "LastName");
+                    break;
+
+                case "ID":
+                    ExtractCustomerId(row, dto, column, "CustomerID");
+                    break;
+
+                default:
+                    ParserFieldHelper.ExtractGenericField(row, dto, column);
+                    break;
+            }
+        }
+
+        return dto;
+    }
+
+    private static void ExtractCustomerId(CsvUtils.CsvRow row, DataRowDto dto, string column, string targetColumn)
+    {
+        ParserFieldHelper.ExtractGenericField(row, dto, column, targetColumn);
+
+        var customerId = dto.Data[targetColumn].ToString();
+
+        if (string.IsNullOrEmpty(customerId)) return; // No customer ID to process
+
+        var phone = ExternalDataUtils.GetPhoneById(customerId);
+        dto.Data["Phone"] = phone;
+    }
+
+    private static void ProcessEmail(DataRowDto dto, List<string> errors, int rowNumber)
+    {
+        var corporateEmail = dto.Data["CorporateEmail"].ToString();
+        var personalEmail = dto.Data["PersonalEmail"].ToString();
+
+        var selectedEmail = SelectPreferredEmail(corporateEmail, personalEmail);
+        
+        if (!ExtractionValidationUtils.IsValidEmail(selectedEmail))
+        {
+            errors.Add($"Row {rowNumber}: Invalid Email '{selectedEmail}'");
+        }
+        
+        dto.Data["Email"] = selectedEmail;
+
+        dto.Data.Remove("CorporateEmail");
+        dto.Data.Remove("PersonalEmail");
+    }
+
+    private static string SelectPreferredEmail(string? corporate, string? personal)
+    {
+        // Example: prefer personal if available, else corporate
+        return !string.IsNullOrWhiteSpace(personal)
+            ? personal
+            : corporate ?? string.Empty;
     }
 }

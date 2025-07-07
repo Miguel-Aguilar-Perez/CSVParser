@@ -1,4 +1,4 @@
-namespace CSVParser.Contracts;
+namespace CSVParser.Interfaces;
 
 /// <summary>
 /// Defines a contract for CSV parsers that can parse CSV files

@@ -1,4 +1,4 @@
-namespace CSVParser.Contracts;
+namespace CSVParser.Parsers;
 
 // Factory to select parser by type
 public static class ParserFactory

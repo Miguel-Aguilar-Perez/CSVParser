@@ -3,7 +3,7 @@ namespace CSVParser.Dtos;
 /// <summary>
 /// Common DTO to hold parsed data from any file.
 /// </summary>
-public class FileInfoDto
+public class DataRowDto
 {
     /// <summary>
     /// Gets or sets the data fields for this DTO.

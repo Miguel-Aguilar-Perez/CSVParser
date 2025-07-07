@@ -1,5 +1,3 @@
-using System.Reflection.Metadata.Ecma335;
-
 namespace CSVParser.Parsers;
 
 /// <summary>
@@ -7,6 +5,15 @@ namespace CSVParser.Parsers;
 /// </summary>
 public class TypeAParser : ICsvParser
 {
+    private static readonly string[] ColumnsToExtract =
+    [
+        "Full Name",
+        "Email",
+        "CustomerID",
+        "Phone",
+        "Salary"
+    ];
+
     /// <summary>
     /// Parses a TypeA CSV file and maps its data to the common DTO.
     /// Performs validation and transformation specific to TypeA format.
@@ -18,50 +25,70 @@ public class TypeAParser : ICsvParser
     public ParseResult Parse(string csvFilePath)
     {
         var result = new ParseResult();
+        var rows = CsvUtils.ReadRows(csvFilePath);
 
-        // Pseudo-code for reading CSV rows
-        foreach (var row in CsvUtils.ReadRows(csvFilePath))
+        foreach (var row in rows)
         {
-            var dto = new FileInfoDto();
-
-            // Example: Validate FullName
-            var hasFullName = row.Data.TryGetValue("Full Name", out var fullName);
-            
-            if (!hasFullName || !ExtractionValidationUtils.IsValidFullName(fullName))
-            {
-                result.Errors.Add($"Row {row.RowNumber}: Invalid Full Name");
-            }
-            else
-            {
-                var splitFullName = fullName!.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                dto.Data["FirstName"] = splitFullName[0];
-                dto.Data["LastName"] = splitFullName[1];
-            }
-
-            // Example: Validate Email
-            var hasValidEmail = row.Data.TryGetValue("Email", out var email);
-            
-            if (!hasValidEmail || !ExtractionValidationUtils.IsValidEmail(email))
-            {
-                result.Errors.Add($"Row {row.RowNumber}: Invalid Email");
-            }
-            else
-            {
-                dto.Data["Email"] = email!;
-            }
-
-            // Other fields that might be present in TypeA CSV. More fields can be added as needed and errors could be added to the result.Errors list if needed.
-            var hasCustomerId = row.Data.TryGetValue("CustomerID", out var customerId);
-            var hasPhone = row.Data.TryGetValue("Phone", out var phone);
-            var hasSalary = row.Data.TryGetValue("Salary", out var salary);
-
-            if (hasCustomerId) dto.Data["CustomerID"] = customerId ?? "";
-            if (hasPhone) dto.Data["CustomerID"] = phone ?? "";
-            if (hasSalary) dto.Data["CustomerID"] = salary ?? "";
-
-            result.ParsedObjects.Add(dto);
+            var parsedObject = ExtractData(row, result.Errors);
+            result.ParsedObjects.Add(parsedObject);
         }
 
         return result;
+    }
+
+    private static DataRowDto ExtractData(CsvUtils.CsvRow row, List<string> errors)
+    {
+        var dto = new DataRowDto();
+
+        foreach (var column in ColumnsToExtract)
+        {
+            switch (column)
+            {
+                case "Full Name":
+                    ExtractFullName(row, column, dto, errors);
+                    break;
+
+                case "Email":
+                    ExtractEmail(row, column, dto, errors);
+                    break;
+
+                default:
+                    ParserFieldHelper.ExtractGenericField(row, dto, column);
+                    break;
+            }
+        }
+
+        return dto;
+    }
+
+    private static void ExtractEmail(CsvUtils.CsvRow row, string column, DataRowDto dto, List<string> errors)
+    {
+        var email = ParserFieldHelper.ExtractRowValue(row.Data, column);
+
+        if (ExtractionValidationUtils.IsValidEmail(email))
+        {
+            dto.Data["Email"] = email;
+        }
+        else
+        {
+            errors.Add($"Row {row.RowNumber}: Invalid Email '{email}'");
+        }
+    }
+
+    private static void ExtractFullName(CsvUtils.CsvRow row, string column, DataRowDto dto, List<string> errors)
+    {
+        var fullName = ParserFieldHelper.ExtractRowValue(row.Data, column);
+
+        if (ExtractionValidationUtils.IsValidFullName(fullName))
+        {
+            var splitFullName = fullName.Split(' ');
+            dto.Data["FirstName"] = splitFullName[0];
+            dto.Data["LastName"] = splitFullName[1];
+        }
+        else
+        {
+
+            errors.Add($"Row {row.RowNumber}: Invalid Full Name");
+        }
     }
 }

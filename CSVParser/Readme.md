@@ -10,7 +10,7 @@ This project demonstrates clean architecture, separation of concerns, and the us
 - **Common DTO:** All parsed data is mapped to a flexible, dictionary-based DTO.
 - **Validation & Transformation:** Shared and parser-specific validation/transformation utilities.
 - **Error Handling:** Detailed error reporting for validation and format issues.
-- **Separation of Concerns:** Utilities, DTOs, contracts, and parsers are organized in dedicated folders.
+- **Separation of Concerns:** Utilities, DTOs, interfaces, and parsers are organized in dedicated folders.
 
 ## Adding a New Parser
 
@@ -21,7 +21,7 @@ This project demonstrates clean architecture, separation of concerns, and the us
 ## Assumptions & Notes
 
 - The CSV reading logic is stored in `CsvUtils.ReadRows` for demonstration.
-- The DTO (`FileInfoDto`) uses a dictionary for maximum flexibility.
+- The DTO (`DataRowDto`) uses a dictionary for maximum flexibility.
 - Validation and transformation logic is shared and can be extended.
 - Error handling is detailed, with row numbers and field-specific messages.
 
